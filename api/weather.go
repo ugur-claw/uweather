@@ -164,8 +164,8 @@ func GetWeatherArt(code int) string {
 	case 0: // Clear sky
 		return `      \   |   /    
        .-.       
-    ‒ (   ) ‒   
-       `-᾿      
+    - (   ) -   
+       -'-      
       /   \     `
 	case 1: // Mainly clear
 		return `      \   |   /    
@@ -191,22 +191,22 @@ func GetWeatherArt(code int) string {
 		return `       .--.    
     .-(    ).   
    (___.__)__)  
-    ʻʻʻʻʻʻʻʻ     `
+    ' ' ' ' '    `
 	case 56, 57: // Freezing drizzle
 		return `       .--.    
     .-(    ).   
    (___.__)__)  
-    ʻ‚ʻ‚ʻ‚ʻ‚     `
+    ', ', ', '   `
 	case 61, 63, 65: // Rain
 		return `       .--.    
     .-(    ).   
    (___.__)__)  
-   ‚ʻ‚ʻ‚ʻ‚ʻ      `
+   ' ' ' ' '    `
 	case 66, 67: // Freezing rain
 		return `       .--.    
     .-(    ).   
    (___.__)__)  
-   ‚ƒ‚ƒ‚ƒ‚       `
+   ,,,,,,,,,    `
 	case 71, 73, 75: // Snow
 		return `       .--.    
     .-(    ).   
@@ -222,7 +222,7 @@ func GetWeatherArt(code int) string {
        .--.    
     .-(    ).   
    (___.__)__)  
-   ‚ʻ‚ʻ‚ʻ‚ʻ      `
+   ' ' ' ' '    `
 	case 85, 86: // Snow showers
 		return `     ***     
        .--.    
@@ -240,12 +240,12 @@ func GetWeatherArt(code int) string {
        .--.    
     .-(    ).   
    (___.__)__)  
-   ‚*˜"*˜"*˜"*   `
+   ,***,***,    `
 	default:
 		return `      \   |   /    
        .-.       
-    ‒ (   ) ‒   
-       `-᾿      
+    - (   ) -   
+       -'-      
       /   \     `
 	}
 }
