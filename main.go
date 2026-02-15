@@ -21,7 +21,14 @@ func main() {
 	// Get all args
 	args := os.Args[1:]
 	if len(args) == 0 {
-		// No args - show weather for default location
+		// No args - check if default location exists
+		_, defaultLabel, err := storage.ListLocations()
+		if err != nil || defaultLabel == "" {
+			// No default - show helpful message
+			printNoDefaultMessage()
+			return
+		}
+		// Show weather for default location
 		if err := cmd.WeatherCommand("", 1); err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)
@@ -179,5 +186,31 @@ Examples:
   uweather Istanbul                 # Show weather for Istanbul
   uweather add Istanbul --label work
   uweather --days 3                 # 3-day forecast for default
+`)
+}
+
+func printNoDefaultMessage() {
+	fmt.Println(`uweather - Weather CLI Tool
+
+No default location set. Please add a city or set a default location.
+
+Quick start:
+  uweather add Istanbul --label home     # Add Istanbul as home
+  uweather default home                 # Set as default
+  uweather                               # Show weather
+
+Other commands:
+  uweather add [city] --label [name]    Add a new location
+  uweather remove [label]               Remove a saved location
+  uweather locations                    List all saved locations
+  uweather default [label]              Set default location
+  uweather --help                       Show full help
+
+Examples:
+  uweather add Amsterdam --label vacation
+  uweather add Den Haag --label trip
+
+Options:
+  --days N     Show N-day forecast (1-7, default: 1)
 `)
 }

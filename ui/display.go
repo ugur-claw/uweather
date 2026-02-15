@@ -17,8 +17,8 @@ func DisplayWeather(location *models.Location, weather *models.WeatherResponse, 
 		// Single day display (current weather)
 		displayCurrentWeather(cityName, weather)
 	} else {
-		// Multi-day forecast
-		displayForecast(cityName, weather, days)
+		// Multi-day forecast - use ASCII table
+		displayForecastTable(cityName, weather, days)
 	}
 }
 
@@ -138,4 +138,64 @@ func displayForecast(cityName string, weather *models.WeatherResponse, days int)
 	}
 
 	fmt.Println("└" + strings.Repeat("─", width-2) + "┘")
+}
+
+func displayForecastTable(cityName string, weather *models.WeatherResponse, days int) {
+	// Header with city name
+	fmt.Println()
+	fmt.Println("┌" + strings.Repeat("─", 43) + "┐")
+	title := "WEATHER FORECAST - " + cityName
+	titlePadding := (44 - len(title)) / 2
+	fmt.Printf("│%s%s%s│\n", strings.Repeat(" ", titlePadding), title, strings.Repeat(" ", 44-len(title)-titlePadding))
+	fmt.Println("├" + strings.Repeat("─", 15) + "┬" + strings.Repeat("─", 11) + "┬" + strings.Repeat("─", 10) + "┬" + strings.Repeat("─", 6) + "┤")
+	fmt.Printf("│%s│%s│%s│%s│\n", centerText(" Day ", 15), centerText("  Temp  ", 11), centerText("  Wind  ", 10), centerText(" Status ", 6))
+	fmt.Println("├" + strings.Repeat("─", 15) + "┼" + strings.Repeat("─", 11) + "┼" + strings.Repeat("─", 10) + "┼" + strings.Repeat("─", 6) + "┤")
+
+	// Current weather for wind info
+	current := weather.CurrentWeather
+	windSpeed := current.Windspeed
+
+	// Display each day
+	daily := weather.Daily
+	for i := 0; i < days && i < len(daily.Time); i++ {
+		// Parse date
+		date, err := time.Parse("2006-01-02", daily.Time[i])
+		if err != nil {
+			continue
+		}
+
+		dayName := date.Format("Mon Jan 2")
+		if i == 0 {
+			dayName = "Today"
+		} else if i == 1 {
+			dayName = "Tomorrow"
+		}
+
+		tempMax := daily.TemperatureMax[i]
+		tempMin := daily.TemperatureMin[i]
+		code := daily.Weathercode[i]
+
+		temp := fmt.Sprintf("%.0f°-%.0f°C", tempMin, tempMax)
+		wind := fmt.Sprintf("%.0fkm/h", windSpeed)
+		status := api.GetWeatherEmoji(code)
+
+		fmt.Printf("│%s│%s│%s│%s│\n",
+			centerText(" "+dayName, 15),
+			centerText(temp, 11),
+			centerText(wind, 10),
+			centerText(" "+status, 6))
+	}
+
+	fmt.Println("└" + strings.Repeat("─", 15) + "┴" + strings.Repeat("─", 11) + "┴" + strings.Repeat("─", 10) + "┴" + strings.Repeat("─", 6) + "┘")
+	fmt.Println()
+}
+
+func centerText(text string, width int) string {
+	padding := width - len(text)
+	if padding <= 0 {
+		return text[:width]
+	}
+	left := padding / 2
+	right := padding - left
+	return strings.Repeat(" ", left) + text + strings.Repeat(" ", right)
 }

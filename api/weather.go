@@ -25,9 +25,28 @@ func NewClient() *Client {
 
 // Geocoding searches for a city and returns coordinates
 func (c *Client) Geocoding(query string) (*models.GeocodingResult, error) {
+	results, err := c.GeocodingMulti(query)
+	if err != nil {
+		return nil, err
+	}
+	if len(results) == 0 {
+		return nil, fmt.Errorf("city not found: %s", query)
+	}
+	// If only one result, return it directly
+	if len(results) == 1 {
+		return &results[0], nil
+	}
+	// Multiple results - return the most likely one (first one)
+	// The caller should use GeocodingMulti to get all options
+	return &results[0], nil
+}
+
+// GeocodingMulti searches for a city and returns all matching coordinates
+func (c *Client) GeocodingMulti(query string) ([]models.GeocodingResult, error) {
 	// Encode the query
 	encodedQuery := url.QueryEscape(query)
-	url := fmt.Sprintf("https://geocoding-api.open-meteo.com/v1/search?name=%s&count=1&language=en&format=json", encodedQuery)
+	// Request more results to allow selection
+	url := fmt.Sprintf("https://geocoding-api.open-meteo.com/v1/search?name=%s&count=10&language=en&format=json", encodedQuery)
 
 	resp, err := c.httpClient.Get(url)
 	if err != nil {
@@ -53,7 +72,12 @@ func (c *Client) Geocoding(query string) (*models.GeocodingResult, error) {
 		return nil, fmt.Errorf("city not found: %s", query)
 	}
 
-	return &geocodingResp.Results[0], nil
+	return geocodingResp.Results, nil
+}
+
+// GetGeocodingResults returns all geocoding results for a query
+func (c *Client) GetGeocodingResults(query string) ([]models.GeocodingResult, error) {
+	return c.GeocodingMulti(query)
 }
 
 // GetWeather fetches weather data for given coordinates
@@ -138,27 +162,91 @@ func GetWeatherCodeDescription(code int) string {
 func GetWeatherArt(code int) string {
 	switch code {
 	case 0: // Clear sky
-		return "    \\   |   /     \n     .--.--.\n    /   |   \\    \n    "
-	case 1, 2: // Mainly clear, partly cloudy
-		return "    \\   |   /     \n  .--.  -.- \n ( _ ).(___(\n  /(___(___)\n    "
+		return `      \   |   /    
+       .-.       
+    ‒ (   ) ‒   
+       `-᾿      
+      /   \     `
+	case 1: // Mainly clear
+		return `      \   |   /    
+   .--.  .-     
+  (    ).(___)  
+  (___.__)__ )  `
+	case 2: // Partly cloudy
+		return `      \  |  /     
+  .--. .--.     
+ .(    ).(___. 
+(___.__)____)  `
 	case 3: // Overcast
-		return "             \n  .--.    \n .(   ).  \n(___.__)  \n    "
+		return `             
+  .--.       
+ .(   ).     
+(___.__)     `
 	case 45, 48: // Fog
-		return "             \n _ - _ - _\n  _ - _ -  \n _ - _ - _\n    "
-	case 51, 53, 55, 56, 57: // Drizzle, freezing drizzle
-		return "             \n  .--.    \n .(   ).  \n(___.__)  \n  / /     \n    "
-	case 61, 63, 65, 66, 67: // Rain, freezing rain
-		return "             \n  .--.    \n .(   ).  \n(___.__)  \n  / / /   \n    "
-	case 71, 73, 75, 77: // Snow
-		return "             \n  .--.    \n .(   ).  \n(___.__)  \n * * * *  \n    "
+		return `      _ - _ -   
+     _ - _ - _  
+    _ - _ - _   
+     _ - _ -    `
+	case 51, 53, 55: // Drizzle
+		return `       .--.    
+    .-(    ).   
+   (___.__)__)  
+    ʻʻʻʻʻʻʻʻ     `
+	case 56, 57: // Freezing drizzle
+		return `       .--.    
+    .-(    ).   
+   (___.__)__)  
+    ʻ‚ʻ‚ʻ‚ʻ‚     `
+	case 61, 63, 65: // Rain
+		return `       .--.    
+    .-(    ).   
+   (___.__)__)  
+   ‚ʻ‚ʻ‚ʻ‚ʻ      `
+	case 66, 67: // Freezing rain
+		return `       .--.    
+    .-(    ).   
+   (___.__)__)  
+   ‚ƒ‚ƒ‚ƒ‚       `
+	case 71, 73, 75: // Snow
+		return `       .--.    
+    .-(    ).   
+   (___.__)__)  
+    * * * *     `
+	case 77: // Snow grains
+		return `       .--.    
+    .-(    ).   
+   (___.__)__)  
+     . . . .    `
 	case 80, 81, 82: // Rain showers
-		return "    _       \n  .--.    \n .(   ).  \n(___.__)  \n  / /     \n    "
+		return `     _` + "`" + `QQQ     
+       .--.    
+    .-(    ).   
+   (___.__)__)  
+   ‚ʻ‚ʻ‚ʻ‚ʻ      `
 	case 85, 86: // Snow showers
-		return "    * * *   \n  .--.    \n .(   ).  \n(___.__)  \n * *      \n    "
-	case 95, 96, 99: // Thunderstorm
-		return "     /_/_/_/  \n  .--.    \n .(   ).  \n(___.__)  \n  /_/      \n    "
+		return `     ***     
+       .--.    
+    .-(    ).   
+   (___.__)__)  
+    *  *  *     `
+	case 95: // Thunderstorm
+		return `     /` + `_` + `/` + `_` + `/` + `_` + `/  
+       .--.    
+    .-(    ).   
+   (___.__)__)  
+     /` + `_` + `/` + `_` + `/    `
+	case 96, 99: // Thunderstorm with hail
+		return `     /` + `_` + `/` + `_` + `/` + `_` + `/  
+       .--.    
+    .-(    ).   
+   (___.__)__)  
+   ‚*˜"*˜"*˜"*   `
 	default:
-		return "    \\   |   /     \n     .--.--.\n    /   |   \\    \n    "
+		return `      \   |   /    
+       .-.       
+    ‒ (   ) ‒   
+       `-᾿      
+      /   \     `
 	}
 }
 
@@ -178,4 +266,42 @@ func FormatCityName(city, country, admin1 string) string {
 		parts = append(parts, strings.ToUpper(admin1))
 	}
 	return strings.Join(parts, ", ")
+}
+
+// GetWeatherEmoji returns emoji for weather code (for ASCII tables)
+func GetWeatherEmoji(code int) string {
+	switch code {
+	case 0:
+		return "☀️"
+	case 1:
+		return "🌤️"
+	case 2:
+		return "⛅"
+	case 3:
+		return "☁️"
+	case 45, 48:
+		return "🌫️"
+	case 51, 53, 55:
+		return "🌧️"
+	case 56, 57:
+		return "🌨️"
+	case 61, 63, 65:
+		return "🌧️"
+	case 66, 67:
+		return "🌨️"
+	case 71, 73, 75:
+		return "❄️"
+	case 77:
+		return "🌨️"
+	case 80, 81, 82:
+		return "🌦️"
+	case 85, 86:
+		return "🌨️"
+	case 95:
+		return "⛈️"
+	case 96, 99:
+		return "⛈️"
+	default:
+		return "🌡️"
+	}
 }
